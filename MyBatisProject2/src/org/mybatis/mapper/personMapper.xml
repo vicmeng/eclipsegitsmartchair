@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.mybatis.mapper.personMapper">
+	
+	<cache></cache>
+	
+	<sql id="idForeach">
+		<where>
+			<if test="id!=null and id.size>0">
+				<foreach collection="id" open="and id in(" close=")" item="id" separator=",">
+				#{id}
+				</foreach>
+			</if>
+		</where>
+	</sql>
+	
+	<select id="queryPersonById" resultType="org.mybatis.entity.Person" parameterType="int">
+		select * from person where id=#{id}
+	</select>
+	
+	
+	<select id="queryClassAndPerson" resultMap="class_person_map">
+		SELECT * from class,person,personcard WHERE class.classid=person.classid AND person.cardid=personcard.cardid
+	</select>
+	<resultMap type="org.mybatis.entity.personClass" id="class_person_map">
+		<id property="classId" column="classid"/>
+		<result property="className" column="classname"/>
+		<collection property="persons" ofType="org.mybatis.entity.Person">
+			<id property="id" column="id"/>
+			<result property="name" column="name"/>
+			<result property="age" column="age"/>
+			<result property="sex" column="sex" javaType="boolean" jdbcType="INTEGER"/>
+			<association property="card" javaType="org.mybatis.entity.personcard">
+				<id property="cardid" column="cardid"/>
+				<result property="info" column="info"/>
+			</association>
+		</collection>
+	</resultMap>
+	
+	<!-- 类型不一样 -->
+	<select id="queryPersonByIdWithConverter" resultMap="PersonResult" parameterType="int">
+		select * from person where id=#{id}
+	</select>
+	<select id="queryPersonByNameOrAgeWithSQLTag" resultType="org.mybatis.entity.Person" parameterType="org.mybatis.entity.Person">
+		select * from person 
+		<where>
+			<if test="name != null and name!=''">and name=#{name} </if>
+			<if test="age != null and age!=0">and age=#{age} </if>
+		</where>
+			
+	</select>
+	<select id="queryAllPersonWithPersoncard" resultMap="person_card_map" >
+			SELECT * FROM person,personcard WHERE person.cardid=personcard.cardid
+			
+		</select>
+		<resultMap type="org.mybatis.entity.Person" id="person_card_map">
+			<id property="id" column="id"/>
+			<result property="name" column="name"/>
+			<result property="age" column="age"/>
+			<result property="sex" column="sex" javaType="boolean" jdbcType="INTEGER"/>
+			<!-- 一对一 -->
+			<association property="card" javaType="org.mybatis.entity.personcard">
+				<id property="cardid" column="cardid"/>
+				<result property="info" column="info"/>
+			</association>
+			
+		</resultMap>	
+	<!-- foreach -->
+	<select id="queryPersonsWithId" parameterType="org.mybatis.entity.id" resultType="org.mybatis.entity.Person">
+		select * from person
+		<include refid="idForeach"></include>
+	</select>
+	<insert id="insertPersonWithConverter" parameterType="org.mybatis.entity.Person">
+		insert into person(id,name,age,sex) values (#{id},#{name},#{age},#{sex,javaType=boolean,jdbcType=INTEGER})
+	</insert>
+	<resultMap type="org.mybatis.entity.Person" id="PersonResult">
+			<!-- 主键 -->
+			<id property="id" column="id"/>
+			<!-- 非主键 -->
+			<result property="name" column="name"/>
+			<result property="age" column="age"/>
+			<result property="sex" column="sex" javaType="boolean" jdbcType="INTEGER"/>
+			
+	</resultMap>
+	
+	<insert id="insertPerson" parameterType="org.mybatis.entity.Person">
+		insert into person(id,name,age) values (#{id},#{name},${age})
+	</insert>
+	<delete id="deletePersonById" parameterType="int">
+		delete from person where id=#{id}
+	</delete> 
+	<update id="updatePersonById" parameterType="org.mybatis.entity.Person">
+		update person set name=#{name},age=#{age} where id =#{id}
+	</update>
+	<select id="queryAllPersonById" resultType="org.mybatis.entity.Person" parameterType="int">
+		select * from person 
+	</select>
+	
+	<!-- 通过调用存储过程 实现查询 -->
+	<select id="num_from_employee" statementType="CALLABLE"  parameterType="HashMap">
+	{
+			CALL num_from_employee(
+				#{emp_age,jdbcType=INTEGER,mode=IN},
+				#{count_num,jdbcType=INTEGER,mode=OUT}
+			)
+			}
+	</select>
+</mapper>
